@@ -30,43 +30,43 @@ static void parse_vma(void) {
         if (task && task->mm) {
             mm = task->mm;
 
-            // TODO 2: mm_struct to initialize the VMA_ITERATOR (-- Assignment 4)
-            vma = mm->mmap;  // This line initializes the VMA iterator
+            // Adjusted for the kernel version
+            vma = mm->mmap; // Assuming mm->mmap is correct for your kernel version
 
-            // TODO 3: Iterate through the VMA linked list with for_each_vma (-- Assignment 4)
-            for (vma = mm->mmap; vma; vma = vma->vm_next) {
-
-                // TODO 4: Iterate through each page of the VMA 
+            for (vma = mm->mmap; vma; vma = vma->vm_next) { // Check if vm_next is valid
                 unsigned long page;
+                pgd_t *pgd;
+                p4d_t *p4d;
+                pud_t *pud;
+                pmd_t *pmd;
+                pte_t *pte;
+
                 for (page = vma->vm_start; page < vma->vm_end; page += PAGE_SIZE) {
-
-                    // TODO 5: Use pgd_offset, p4d_offset, pud_offset, pmd_offset, pte_offset_map to get the page table entry
-                    pgd_t *pgd = pgd_offset(mm, page);
+                    pgd = pgd_offset(mm, page);
                     if (pgd_none(*pgd) || pgd_bad(*pgd)) continue;
-                    p4d_t *p4d = p4d_offset(pgd, page);
+                    p4d = p4d_offset(pgd, page);
                     if (p4d_none(*p4d) || p4d_bad(*p4d)) continue;
-                    pud_t *pud = pud_offset(p4d, page);
+                    pud = pud_offset(p4d, page);
                     if (pud_none(*pud) || pud_bad(*pud)) continue;
-                    pmd_t *pmd = pmd_offset(pud, page);
+                    pmd = pmd_offset(pud, page);
                     if (pmd_none(*pmd) || pmd_bad(*pmd)) continue;
-                    pte_t *pte = pte_offset_map(pmd, page);
+                    pte = pte_offset_map(pmd, page);
                     if (!pte) continue;
-
-                    // TODO 6: use pte_none(pte) to check if the page table entry is valid
                     if (pte_none(*pte)) continue;
-
-                    // TODO 7: use pte_present(pte) to check if the page is in memory, otherwise it is in swap
+                    
                     if (pte_present(*pte)) {
                         total_rss++;  // Page is in memory, increment RSS count
                     } else {
                         total_swap++; // Page is in swap, increment swap count
                     }
 
-                    // TODO 8: use pte_young(pte) to check if the page is actively used
                     if (pte_young(*pte)) {
                         total_wss++;
+                        // Clearing the accessed bit
                         test_and_clear_bit(_PAGE_BIT_ACCESSED, (unsigned long *)pte);
                     }
+
+                    pte_unmap(pte);  // Unmap the page table entry after processing
                 }
             }
         }
