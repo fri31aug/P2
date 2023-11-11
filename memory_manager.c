@@ -69,7 +69,7 @@ static void parse_vma(void)
                     }
                     pte_unmap(ptep);
                 }
-                vma = vma->vm_next; // Move to the next VMA
+                vma = find_vma(mm, vma->vm_end); // Move to the next VMA
             }
         }
     }
@@ -100,8 +100,8 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart)
 
 int memory_init(void)
 {
-    printk("CSE330 Project 2 Kernel Module Inserted\n");
     ktime_t ktime;
+    printk("CSE330 Project 2 Kernel Module Inserted\n");
     ktime = ktime_set(0, timer_interval_ns);
     hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
     hr_timer.function = &timer_callback;
@@ -124,4 +124,3 @@ MODULE_VERSION("0.1");
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ananya Yadav");
 MODULE_DESCRIPTION("CSE330 Project 2 Memory Management\n");
-
