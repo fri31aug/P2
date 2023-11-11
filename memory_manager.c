@@ -25,29 +25,33 @@ static void parse_vma(void)
 {
     struct vm_area_struct *vma = NULL;
     struct mm_struct *mm = NULL;
+    pgd_t *pgd;
+    p4d_t *p4d;
+    pud_t *pud;
+    pmd_t *pmd;
+    pte_t *ptep, pte;
+    unsigned long page;
 
     if(pid > 0){
         task = pid_task(find_vpid(pid), PIDTYPE_PID);
         if(task && task->mm){
             mm = task->mm;
-            vma = mm->mmap;  // Initialize the VMA iterator
+            vma = mm->mmap; // Use find_vma(mm, 0) if necessary
 
-            for_each_vma(vma, mm) {
-                unsigned long page;
+            for (vma = find_vma(mm, 0); vma; vma = vma->vm_next) {
                 for (page = vma->vm_start; page < vma->vm_end; page += PAGE_SIZE) {
-                    pgd_t *pgd = pgd_offset(mm, page);
+                    pgd = pgd_offset(mm, page);
                     if (pgd_none(*pgd) || pgd_bad(*pgd)) continue;
 
-                    p4d_t *p4d = p4d_offset(pgd, page);
+                    p4d = p4d_offset(pgd, page);
                     if (p4d_none(*p4d) || p4d_bad(*p4d)) continue;
 
-                    pud_t *pud = pud_offset(p4d, page);
+                    pud = pud_offset(p4d, page);
                     if (pud_none(*pud) || pud_bad(*pud)) continue;
 
-                    pmd_t *pmd = pmd_offset(pud, page);
+                    pmd = pmd_offset(pud, page);
                     if (pmd_none(*pmd) || pmd_bad(*pmd)) continue;
 
-                    pte_t *ptep, pte;
                     ptep = pte_offset_map(pmd, page);
                     if (!ptep) continue;
                     pte = *ptep;
