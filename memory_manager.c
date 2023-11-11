@@ -30,10 +30,7 @@ static void parse_vma(void) {
         if (task && task->mm) {
             mm = task->mm;
 
-            // Adjusted for the kernel version
-            vma = mm->mmap; // Assuming mm->mmap is correct for your kernel version
-
-            for (vma = mm->mmap; vma; vma = vma->vm_next) { // Check if vm_next is valid
+            for_each_vma(mm, vma) {
                 unsigned long page;
                 pgd_t *pgd;
                 p4d_t *p4d;
