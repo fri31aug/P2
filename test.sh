@@ -38,7 +38,7 @@ if [[ $1 -le 2 ]]; then
 else
 	# Swap Test Case
 	scalar=1
-	one_gb=9663676416
+	one_gb=9663676416/9
 	index=1
 	while [ $index -le 3 ]; do
 		mem_size_gb=$(echo "scale=2; ($scalar*$one_gb)/1073741824" | bc)
