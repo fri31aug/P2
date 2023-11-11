@@ -24,6 +24,12 @@ unsigned long total_wss = 0;
 static void parse_vma(void) {
     struct vm_area_struct *vma = NULL;
     struct mm_struct *mm = NULL;
+    pgd_t *pgd;
+    p4d_t *p4d;
+    pud_t *pud;
+    pmd_t *pmd;
+    pte_t *pte;
+    unsigned long page;
 
     if (pid > 0) {
         task = pid_task(find_vpid(pid), PIDTYPE_PID);
@@ -31,25 +37,26 @@ static void parse_vma(void) {
             mm = task->mm;
 
             // TODO 2: mm_struct to initialize the VMA_ITERATOR (-- Assignment 4)
-            vma = mm->mmap;  // This line initializes the VMA iterator
+            // Use mmap_sem to lock and access the VMA
+            down_read(&mm->mmap_sem);
+            vma = mm->mmap;
 
             // TODO 3: Iterate through the VMA linked list with for_each_vma (-- Assignment 4)
-            for (vma = mm->mmap; vma; vma = vma->vm_next) {
+            for (; vma; vma = vma->vm_next) {
 
-                // TODO 4: Iterate through each page of the VMA 
-                unsigned long page;
+                // TODO 4: Iterate through each page of the VMA
                 for (page = vma->vm_start; page < vma->vm_end; page += PAGE_SIZE) {
 
                     // TODO 5: Use pgd_offset, p4d_offset, pud_offset, pmd_offset, pte_offset_map to get the page table entry
-                    pgd_t *pgd = pgd_offset(mm, page);
+                    pgd = pgd_offset(mm, page);
                     if (pgd_none(*pgd) || pgd_bad(*pgd)) continue;
-                    p4d_t *p4d = p4d_offset(pgd, page);
+                    p4d = p4d_offset(pgd, page);
                     if (p4d_none(*p4d) || p4d_bad(*p4d)) continue;
-                    pud_t *pud = pud_offset(p4d, page);
+                    pud = pud_offset(p4d, page);
                     if (pud_none(*pud) || pud_bad(*pud)) continue;
-                    pmd_t *pmd = pmd_offset(pud, page);
+                    pmd = pmd_offset(pud, page);
                     if (pmd_none(*pmd) || pmd_bad(*pmd)) continue;
-                    pte_t *pte = pte_offset_map(pmd, page);
+                    pte = pte_offset_map(pmd, page);
                     if (!pte) continue;
 
                     // TODO 6: use pte_none(pte) to check if the page table entry is valid
@@ -65,10 +72,17 @@ static void parse_vma(void) {
                     // TODO 8: use pte_young(pte) to check if the page is actively used
                     if (pte_young(*pte)) {
                         total_wss++;
-                        test_and_clear_bit(_PAGE_BIT_ACCESSED, (unsigned long *)pte);
+                        // Clear the accessed bit
+                        pte = pte_mkold(*pte);
+                        set_pte_at(mm, page, pte, *pte);
                     }
+
+                    // Unmap the page table entry
+                    pte_unmap(pte);
                 }
             }
+            // Release the mmap_sem lock
+            up_read(&mm->mmap_sem);
         }
     }
 }
