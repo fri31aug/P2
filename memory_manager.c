@@ -36,8 +36,8 @@ static void parse_vma(void)
         task = pid_task(find_vpid(pid), PIDTYPE_PID);
         if(task && task->mm){
             mm = task->mm;
-            vma = find_vma(mm, 0); // Get the first VMA
-
+            vma = find_vma(mm, 0); 
+            
             while (vma) {
                 for (page = vma->vm_start; page < vma->vm_end; page += PAGE_SIZE) {
                     pgd = pgd_offset(mm, page);
@@ -69,7 +69,7 @@ static void parse_vma(void)
                     }
                     pte_unmap(ptep);
                 }
-                vma = find_vma(mm, vma->vm_end); // Move to the next VMA
+                vma = find_vma(mm, vma->vm_end); 
             }
         }
     }
